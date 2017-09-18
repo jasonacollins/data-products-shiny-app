@@ -1,0 +1,80 @@
+Data products: Height predictor
+========================================================
+author: Jason Collins
+date: 18 September 2017
+autosize: true
+transition: zoom
+font-family: 'Helvetica'
+css: mySlides.css
+
+```{r, echo=FALSE, warnings=FALSE, messages=FALSE}
+library(psych)
+library(ggplot2)
+```
+
+Purpose of the product
+========================================================
+
+The shiny app calculates the predicted height of a child given the average of the parents' heights. The prediction is based on a model derived from Galton's dataset on parent and child heights. The app also plots a prediction interval.
+
+The user enters the mid-parent height in inches using the slider. The prediction is then automatically generated based on the linear model derived from Galton's dataset and added to the plot.
+
+Galton data
+========================================================
+The Galton data consists of 928 observations of mid-parent and child height.
+
+```{r data, echo=FALSE, fig.height=10, fig.width=18}
+ggplot(galton, aes(x=parent, y=child)) +
+      coord_cartesian(xlim = c(62, 74)) +
+      geom_point(shape=1, size=2) +
+      scale_shape_identity() +
+      guides(color = FALSE, size = FALSE) +
+      labs(x = "Mid parent height (inches)", y = "Child height (inches)") +
+      theme(axis.text=element_text(size=24), axis.title=element_text(size=24))
+```
+
+
+
+Height prediction
+========================================================
+class: small-code
+
+<small style="font-size:.6em">The prediction displayed in the shiny app is the result of a simple linear model on the Galton data.</small>
+
+```{r model}
+model1 <- lm(child ~ parent, data=galton)
+summary(model1)
+```
+***
+<small style="font-size:.6em">Below is an illustration of a prediction for a mid-parent height of 70 inches. These are the datapoints placed on the plot.</small>
+```{r}
+parent_height <- 70
+predictChild <- predict(model1, newdata=data.frame(parent=parent_height), interval="prediction")
+predictChild
+```
+
+<small style="font-size:.6em">Code for the Shiny app is available [here](https://github.com/jasonacollins/data-products-shiny-app).</small>
+
+Plotted prediction
+========================================================
+class: illustration
+
+```{r, echo=FALSE, results=FALSE}
+#Generating data frame for ggplot
+predInterval <- as.data.frame(t(rbind(rep(parent_height, 3), predictChild)))
+colnames(predInterval) <- c("parent_height", "child_height")
+```
+
+<small style="font-size:.6em">The app shows the prediction and prediction interval on a plot of Galton's data. The user can use the slider to adjust the mid-parent height and obtain new predictions. Here a prediction for a 70-inch mid-parent height is shown, with a prediction of just over 69 inches.</small>
+```{r plot, echo=FALSE, fig.height=10, fig.width=18}
+ggplot(galton, aes(x=parent, y=child)) +
+      coord_cartesian(xlim = c(62, 74)) +
+      geom_point(shape=1) +
+      geom_smooth(method=lm) +
+      geom_point(data=predInterval, aes(x=parent_height, y=child_height, size=8, color=c("blue", "red", "red"), shape=c(16, 95, 95))) +
+      geom_linerange(aes(x=parent_height, ymin=predictChild[2], ymax=predictChild[3]), color="blue") +
+      scale_shape_identity() +
+      guides(color = FALSE, size = FALSE) +
+      labs(x = "Mid parent height (inches)", y = "Child height (inches)") +
+      theme(axis.text=element_text(size=24), axis.title=element_text(size=24))
+```
